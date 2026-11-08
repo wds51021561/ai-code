@@ -92,24 +92,35 @@ def download_tool(name: str, url: str, dest_dir: Path,
 
         zip_path.unlink()
 
+        folders = []
         if subfolder_prefix:
-            for item in dest_dir.iterdir():
-                if item.is_dir() and item.name.startswith(subfolder_prefix):
-                    src = item / exe_name
-                    if src.exists():
-                        src.rename(exe_path)
-                    if extra_files:
-                        for fname in extra_files:
-                            sf = item / fname
-                            if sf.exists():
-                                dst = dest_dir / fname
-                                if not dst.exists():
-                                    sf.rename(dst)
-                    try:
-                        shutil.rmtree(item)
-                    except OSError:
-                        pass
+            folders = [item for item in dest_dir.iterdir()
+                       if item.is_dir() and item.name.startswith(subfolder_prefix)]
+
+        # 压缩包内可执行文件可能位于子目录（例如 libwebp 的 bin/），递归查找。
+        if not exe_path.exists():
+            candidates = []
+            for folder in folders:
+                candidates.extend(folder.rglob(exe_name))
+            if not candidates:
+                candidates = list(dest_dir.rglob(exe_name))
+            for src in candidates:
+                if src.is_file():
+                    shutil.move(str(src), str(exe_path))
                     break
+
+        if extra_files:
+            for fname in extra_files:
+                dst = dest_dir / fname
+                if dst.exists():
+                    continue
+                search_root = folders[0] if folders else dest_dir
+                src = next(search_root.rglob(fname), None)
+                if src is not None and src.is_file():
+                    shutil.copy2(src, dst)
+
+        for folder in folders:
+            shutil.rmtree(folder, ignore_errors=True)
 
         if exe_path.exists():
             if progress_callback:

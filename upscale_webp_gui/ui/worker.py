@@ -1,5 +1,6 @@
 from PySide6.QtCore import QObject, Signal, Slot
 
+from core.cbz import pack_directory
 from core.config import AppConfig
 from core.processor import process
 from core.models.realesrgan import RealESRGAN
@@ -30,6 +31,34 @@ class DownloadWorker(QObject):
             self.finished.emit("success", f"{exe_path}\n{cwebp_path}")
         except Exception as e:
             self.error.emit(f"下载失败: {e}")
+
+
+class PackWorker(QObject):
+    log = Signal(str)
+    finished = Signal(list)
+    error = Signal(str)
+
+    def __init__(self, dir_path: str, remove_source: bool):
+        super().__init__()
+        self.dir_path = dir_path
+        self.remove_source = remove_source
+        self._cancel = [False]
+
+    def cancel(self):
+        self._cancel[0] = True
+
+    @Slot()
+    def run(self):
+        try:
+            created = pack_directory(
+                self.dir_path,
+                remove_source=self.remove_source,
+                log_callback=lambda msg: self.log.emit(msg),
+                cancel_flag=self._cancel,
+            )
+            self.finished.emit(created)
+        except Exception as e:
+            self.error.emit(f"打包错误: {e}")
 
 
 class ProcessWorker(QObject):
