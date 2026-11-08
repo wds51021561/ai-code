@@ -1,0 +1,25 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── Nuitka 打包产物 ──
+main.build/
+main.dist/
+dist/
+build/
+
+# ── 运行所需模型与第三方工具（程序会自动下载） ──
+upscale_webp_gui/models/
+
+# ── 临时文件 ──
+*.part
+*.log
+
+# ── IDE / 系统 ──
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
